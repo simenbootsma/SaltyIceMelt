@@ -15,24 +15,23 @@ SETTINGS = load_settings('all')
 
 
 def show_figures():
-    refresh_cache()
-    tab_3()   # experiment details
+    # refresh_cache()
+    # tab_3()   # experiment details
     fig_3()   # density in T-S diagram
-    fig_5()   # boundary tracking processing
-    fig_7()   # contours
-    fig_8()   # volume over time
-    fig_9()   # Nusselt - Rayleigh
-    fig_10()  # both mean and RMS fields
-    fig_11()   # velocity time series at points
-    fig_12()   # velocity profiles at lines
-    fig_13()   # location of lines for profiles and points for histograms
-    fig_14_15()   # velocity histograms at points
-    fig_16()   # scallop amplitude in Grashof plot
-    fig_17()   # radius and r - <r> as function of height and time
-    fig_18()  # wavelength and scallop migration as function of density ratio
-    fig_20()  # all contours at 17 degrees
-    fig_21_22_23()  # all contours at high temperature
-    plt.show()
+    # fig_5()   # boundary tracking processing
+    # fig_7()   # contours
+    # fig_8()   # volume over time
+    # fig_9()   # Nusselt - Rayleigh
+    # fig_10()  # both mean and RMS fields
+    # fig_11()   # velocity time series at points
+    # fig_12()   # velocity profiles at lines
+    # fig_13()   # location of lines for profiles and points for histograms
+    # fig_14_15()   # velocity histograms at points
+    # fig_16()   # scallop amplitude in Grashof plot
+    # fig_17()   # radius and r - <r> as function of height and time
+    # fig_18()  # wavelength and scallop migration as function of density ratio
+    # fig_20()  # all contours at 17 degrees
+    # fig_21_22_23()  # all contours at high temperature
 
 
 def tab_3():
@@ -87,13 +86,13 @@ def fig_3():
     t_fr = sw.freezing_temperature()
 
     plt.figure()
-    plt.imshow(np.flipud(rho.T), extent=[np.min(sw.s), np.max(sw.s), np.min(sw.t), np.max(sw.t)], cmap=CMAP, aspect='auto', vmin=980, vmax=1080)
+    plt.imshow(np.flipud(rho.T), extent=[np.min(sw.s), np.max(sw.s), np.min(sw.t), np.max(sw.t)], cmap=CMAP, aspect='auto', vmin=990, vmax=1080)
     plt.xlabel('Salinity (g/kg)', fontsize=12)
     plt.ylabel('Temperature ($\degree$C)', fontsize=12)
-    plt.title("Density (kg m$^{-3}$)", fontsize=12)
     plt.tick_params(labelsize=12)
-    cb = plt.colorbar()
+    cb = plt.colorbar(extend='both')
     cb.ax.tick_params(labelsize=12)
+    cb.ax.set_title(r"$\rho$ (kg/m$^3$)", fontsize=12)
 
     t1 = plt.Polygon(np.array([[np.min(sw.s), np.min(sw.t)], [np.min(sw.s), 0], [np.max(sw.s), np.min(t_fr)], [np.max(sw.s), np.min(sw.t)]]), color=[.6, .6, .6])
     plt.gca().add_patch(t1)
