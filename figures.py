@@ -16,22 +16,22 @@ SETTINGS = load_settings('all')
 
 def show_figures():
     # refresh_cache()
-    # tab_3()   # experiment details
+    tab_3()   # experiment details
     fig_3()   # density in T-S diagram
-    # fig_5()   # boundary tracking processing
-    # fig_7()   # contours
-    # fig_8()   # volume over time
-    # fig_9()   # Nusselt - Rayleigh
-    # fig_10()  # both mean and RMS fields
-    # fig_11()   # velocity time series at points
-    # fig_12()   # velocity profiles at lines
-    # fig_13()   # location of lines for profiles and points for histograms
-    # fig_14_15()   # velocity histograms at points
-    # fig_16()   # scallop amplitude in Grashof plot
-    # fig_17()   # radius and r - <r> as function of height and time
-    # fig_18()  # wavelength and scallop migration as function of density ratio
-    # fig_20()  # all contours at 17 degrees
-    # fig_21_22_23()  # all contours at high temperature
+    fig_5()   # boundary tracking processing
+    fig_7()   # contours
+    fig_8()   # volume over time
+    fig_9()   # Nusselt - Rayleigh
+    fig_10()  # both mean and RMS fields
+    fig_11()   # velocity time series at points
+    fig_12()   # velocity profiles at lines
+    fig_13()   # location of lines for profiles and points for histograms
+    fig_14_15()   # velocity histograms at points
+    fig_16()   # scallop amplitude in Grashof plot
+    fig_17()   # radius and r - <r> as function of height and time
+    fig_18()  # wavelength and scallop migration as function of density ratio
+    fig_20()  # all contours at 17 degrees
+    fig_21_22_23()  # all contours at high temperature
 
 
 def tab_3():
@@ -624,29 +624,6 @@ def fig_14_15():
     titles = {'piv1': '$S_\infty = $ 0 g/kg', 'piv2': '5 g/kg', 'piv3': '10 g/kg', 'piv4': '20 g/kg'}
     alphabet = 'abcdefghijklmnopqrstuvwxyz'
 
-    # show location of points
-    for k in '1234':
-        k = 'piv' + k
-        mvel = analysis.compute_mean_velocity_field(k, n=nframes[k])
-        speed = np.sqrt(mvel[:, :, 0] ** 2 + mvel[:, :, 1] ** 2)
-        edges = analysis.compute_average_mask(k)
-        edges[:, 0] = edges[::-1, 0]
-        edges[:, 0] = analysis.smoothen_array(edges[:, 0], n=50)
-
-        plt.figure()
-        plt.imshow(speed * 100, extent=[0, speed.shape[1], speed.shape[0], 0], cmap=cmc.vik, vmin=0, vmax=1.5)
-        for i in rows[k]:
-            xw = int(np.mean([ex for ex, ey in edges if i-dy < ey/dpx < i+dy+1]) / dpx)
-            for dw in dwall:
-                plt.gca().add_artist(plt.Rectangle((xw+dw, i-dy), width=2*dx+1, height=2*dy+1, color=(.6, .25, .6)))
-        # plt.plot(edges[:, 0] / dpx, edges[:, 1] / dpx, color=(.5, .5, .5), lw=1.5)
-        edges = edges / dpx
-        edges = np.vstack([[-1, 100], [-1, -100], edges])
-        plt.gca().add_artist(plt.Polygon(edges, facecolor=(.7, .7, .7)))
-        plt.plot(edges[:, 0], edges[:, 1], color=(.3, .3, .3), lw=1.5)
-        plt.xlim([1, speed.shape[1]-1])
-        plt.ylim([speed.shape[0]-3, 1])
-
     # make and show histograms
     fig_x, axes_x = plt.subplots(len(dwall), 4)
     fig_y, axes_y = plt.subplots(len(dwall), 4)
@@ -688,6 +665,8 @@ def fig_14_15():
     fig_y.supxlabel('$v_y$ (cm s$^{-1}$)', fontsize=14)
     fig_x.supylabel('PDF (s cm$^{-1}$)', fontsize=14)
     fig_y.supylabel('PDF (s cm$^{-1}$)', fontsize=14)
+    fig_x.text(-0.3, 1.3, 'I)', fontsize=18, transform=axes_x[0, 0].transAxes, ha='right')
+    fig_y.text(-0.3, 1.3, 'II)', fontsize=18, transform=axes_y[0, 0].transAxes, ha='right')
     plt.show()
 
 
