@@ -13,6 +13,11 @@ class Seawater:
         if s is None:
             s = self.s
 
+        if t < 40 and s < 43:
+            return self.density_millero(t, s)
+        return self.density_sharqawy(t, s)
+
+    def density_sharqawy(self, t, s):
         """
         Computes density of seawater in kg/m^3.
         Function taken from Eq. 8 in Sharqawy2010.
@@ -28,12 +33,7 @@ class Seawater:
                  + b[4] * t ** 2 * s**2
         return rho_sw
 
-    def density_millero(self, t=None, s=None):
-        if t is None:
-            t = self.t
-        if s is None:
-            s = self.s
-
+    def density_millero(self, t, s):
         """
         Computes density of seawater in kg/m^3.
         Function taken from Eq. 6 in Sharqawy2010.
