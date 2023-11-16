@@ -16,22 +16,26 @@ SETTINGS = load_settings('all')
 
 def show_figures():
     # refresh_cache()
-    tab_3()   # experiment details
-    fig_3()   # density in T-S diagram
-    fig_5()   # boundary tracking processing
-    fig_7()   # contours
-    fig_8()   # volume over time
-    fig_9()   # Nusselt - Rayleigh
-    fig_10()  # both mean and RMS fields
+    tab_3()    # experiment details
+    fig_3()    # density in T-S diagram
+    fig_5()    # boundary tracking processing
+    fig_7()    # contours
+    fig_8()    # volume over time
+    fig_9()    # Nusselt - Rayleigh
+    fig_10()   # both mean and RMS fields
     fig_11()   # velocity time series at points
     fig_12()   # velocity profiles at lines
     fig_13()   # location of lines for profiles and points for histograms
-    fig_14_15()   # velocity histograms at points
-    fig_16()   # scallop amplitude in Grashof plot
-    fig_17()   # radius and r - <r> as function of height and time
-    fig_18()  # wavelength and scallop migration as function of density ratio
-    fig_20()  # all contours at 17 degrees
-    fig_21_22_23()  # all contours at high temperature
+    fig_14()   # velocity histograms at points
+    fig_15()   # scallop amplitude in Grashof plot
+    fig_16()   # radius and r - <r> as function of height and time
+    fig_17()   # wavelength and scallop migration as function of density ratio
+
+    # Appendix
+    fig_19()        # all contours at 17 degrees
+    fig_20_21_22()  # all contours at high temperature
+    fig_23()        # wavelength scatter plots
+    fig_24()        # scallop speed analysis example
 
 
 def tab_3():
@@ -320,14 +324,14 @@ def fig_9():
         ye = np.array([Nusselt[k][1] for k in ks])
         label = '$S_\infty$ = {:.0f} g/kg'.format(salinities[i])
         axes[1].plot(x, y, '-o', color=cmap(int(i * 255 / 5)), lw=2, markersize=4, label=label)
-    axes[1].plot([2e8, 9e8], [.7 * (2e8) ** 0.25, .7 * (9e8) ** 0.25], '-k')
-    axes[1].text(1.9e8, 88, '$Nu \propto Ra_T^{1/4}$', rotation=45, fontsize=fontsize)
+    axes[1].plot([2e8, 9e8], [.6 * (2e8) ** 0.25, .6 * (9e8) ** 0.25], '-k')
+    axes[1].text(1.9e8, 76, '$Nu \propto Ra_T^{1/4}$', rotation=45, fontsize=fontsize)
 
     axes[0].set_xlabel("$Ra_S$", fontsize=fontsize+2)
     axes[0].set_ylabel("$Nu$", fontsize=fontsize+2)
     axes[0].legend(fontsize=fontsize, loc='lower right')
     axes[0].grid()
-    axes[0].set_ylim([0, 130])
+    axes[0].set_ylim([0, 120])
     axes[0].tick_params(labelsize=fontsize)
 
     axes[1].set_xlabel("$Ra_T$", fontsize=fontsize+2)
@@ -339,7 +343,7 @@ def fig_9():
     # axes[1].grid(which='both', axis='y')
     # axes[1].grid(which='major', axis='x')
     axes[1].legend(fontsize=fontsize)
-    axes[1].set_ylim([35, 135])
+    axes[1].set_ylim([30, 120])
     axes[1].set_xlim([1e8, 1e10])
     axes[1].tick_params(labelsize=fontsize)
 
@@ -423,6 +427,10 @@ def fig_10():
     cb.set_ticks([0, .5, 1, 1.5])
     cb.set_label('Flow speed (cm/s)', fontsize=12)
     cb2.set_label('RMS (cm/s)', fontsize=12)
+    axes[0, 0].set_title("$S_\infty = $0 g/kg")
+    axes[0, 1].set_title("5 g/kg")
+    axes[0, 2].set_title("10 g/kg")
+    axes[0, 3].set_title("20 g/kg")
     plt.show()
 
 
@@ -607,7 +615,7 @@ def fig_13():
     plt.show()
 
 
-def fig_14_15():
+def fig_14():
     """ Compute velocity histograms at given points """
     nframes = {'piv1': 990, "piv2": 8990, "piv3": 8990, "piv4": 8990}
     # rows = {'piv1': [30], 'piv2': [15, 32], 'piv3': [38, 56], 'piv4': [27, 35]}
@@ -665,12 +673,12 @@ def fig_14_15():
     fig_y.supxlabel('$v_y$ (cm s$^{-1}$)', fontsize=14)
     fig_x.supylabel('PDF (s cm$^{-1}$)', fontsize=14)
     fig_y.supylabel('PDF (s cm$^{-1}$)', fontsize=14)
-    fig_x.text(-0.3, 1.3, 'I)', fontsize=18, transform=axes_x[0, 0].transAxes, ha='right')
-    fig_y.text(-0.3, 1.3, 'II)', fontsize=18, transform=axes_y[0, 0].transAxes, ha='right')
+    fig_x.text(-0.3, 1.3, 'I)', fontsize=18, font='serif', transform=axes_x[0, 0].transAxes, ha='right')
+    fig_y.text(-0.3, 1.3, 'II)', fontsize=18, font='serif', transform=axes_y[0, 0].transAxes, ha='right')
     plt.show()
 
 
-def fig_16():
+def fig_15():
     """ Scallop amplitude in T-S and GrT-GrS plot """
     from matplotlib.markers import MarkerStyle
 
@@ -764,7 +772,7 @@ def fig_16():
     plt.show()
 
 
-def fig_17():
+def fig_16():
     """ Radius, r - <r> and dr/dt as function of height and time """
     exps = ['a3', 'a5']
     side = 0  # 0 = left, 1 = right
@@ -842,7 +850,7 @@ def fig_17():
     plt.show()
 
 
-def fig_18():
+def fig_17():
     """ Wavelength and scallop speed as function of density ratio """
     sal, vel, vel_std, temp, d_ratio, wl, wl_std = [], [], [], [], [], [], []
     keys = ["a" + k for k in "3456789"] + ['b2', 'd1', 'd2', 'e2', 'e3', 'f2']
@@ -855,14 +863,14 @@ def fig_18():
         contours = analysis.get_contours(k)
         hvi, toff = analysis.find_half_volume_index(k), analysis.find_time_offset(k)
         start_ind = hvi
-        end_ind = toff + int(2.5 * (hvi - toff))
+        end_ind = toff + int(2 * (hvi - toff))
         end_ind = min(len(contours), end_ind)
         for j in range(start_ind, end_ind):
             L += analysis.compute_wavelengths(contours[j])
         analysis.dump_to_cache(L, 'wavelengths_'+k)
         # L = analysis.get_from_cache('wavelengths_' + k)
         if k == 'd1':
-            L = [val for val in L if val > SETTINGS[k]["Ccal"]]
+            L = [val for val in L if val > 0.6 * SETTINGS[k]["Ccal"]]
         elif k == 'd2':
             L = [val for val in L if val < 5 * SETTINGS[k]["Ccal"]]
 
@@ -915,7 +923,7 @@ def fig_18():
 """
 
 
-def fig_20():
+def fig_19():
     """ All contours of exp3 over time """
     cmap = "Reds_r"
     temp = "17"
@@ -974,7 +982,7 @@ def fig_20():
     plt.show()
 
 
-def fig_21_22_23():
+def fig_20_21_22():
     """ All contours of expDEF over time """
     cmap = "Greens_r"
     experiments = [['d' + k for k in '1234'], ['e' + k for k in '1234'], ['f' + k for k in '1234']]
@@ -1027,6 +1035,191 @@ def fig_21_22_23():
     plt.show()
 
 
+def fig_23():
+    """" Scallop wavelength scatter plots and binned plot"""
+    N_BINS = 10
+    cmap = cmc.batlowK
+
+    # all data points for each experiment separately
+    fig, axes = plt.subplots(3, 4)
+    binned = {}
+    keys = ["a" + k for k in "3456789"] + ['b2', 'd1', 'd2', 'e2', 'f2']
+    for i, k in enumerate(keys):
+        print(k)
+
+        i_off = analysis.find_time_offset(k)
+        i_half = analysis.find_half_volume_index(k)
+        start_ind = int(i_half)  # start at tau = 1
+        end_ind = int(i_off + 2 * (i_half - i_off))  # end at tau = 2
+        end_ind = min(end_ind, SETTINGS[k]["N"]-1)
+
+        ax = axes[i // axes.shape[1], i % axes.shape[1]]
+        color = [val for val in cmap(i * cmap.N // len(keys))]
+        all_wl = [analysis.compute_wavelengths(c) for c in analysis.get_contours(k)]
+
+        # remove outliers
+        for j in range(len(all_wl)):
+            if k == 'd1':
+                all_wl[j] = [val for val in all_wl[j] if val > 0.6 * SETTINGS[k]['Ccal']]
+            elif k == 'd2':
+                all_wl[j] = [val for val in all_wl[j] if val < 5 * SETTINGS[k]['Ccal']]
+
+        wavelengths = all_wl[start_ind:end_ind]
+        # t = np.arange(len(wavelengths)) * SETTINGS[k]["dt"] / 60  # time in minutes
+        all_t = analysis.find_times(k)
+        all_t = (all_t - all_t[i_off]) / analysis.find_half_volume_time(k)
+        t = all_t[start_ind:end_ind]
+        for j in range(len(all_wl)):
+            L = np.array(all_wl[j]) / SETTINGS[k]["Ccal"]
+            alpha = 1 if start_ind <= j < end_ind else 0.2
+            ax.plot(all_t[j] * np.ones(len(L)), L, 'o', color=color, markersize=2, alpha=alpha)
+
+        # binning
+        mL = [np.mean(L) for L in wavelengths]
+        bin_size = int(len(mL)//N_BINS)
+        bL = [np.nanmean(mL[j:j + bin_size]) for j in range(0, len(mL), bin_size)]
+        bt = [np.mean(t[j:j + bin_size]) for j in range(0, len(t), bin_size)]
+        binned[k] = np.array(bL) / SETTINGS[k]["Ccal"]
+
+        ax.plot(bt, binned[k], '-', lw=2, color=('r' if i < 8 else 'k'))
+        ax.grid()
+        ax.text(0.05, 0.95, "({:s}$_{:s}$)".format(k[0], k[1]), ha='left', va='top', transform=ax.transAxes)
+        ax.set_ylim([0, 5])
+        ax.set_xlim([0, 3])
+        if i // axes.shape[1] < axes.shape[0]-1:
+            ax.set_xticklabels([])
+        if i % axes.shape[1] > 0:
+            ax.set_yticklabels([])
+        ax.tick_params(top=(i // axes.shape[1] > 0), right=(i % axes.shape[1] < axes.shape[1]-1))
+    fig.supxlabel(r'$\tau$ (-)', fontsize=14)
+    fig.supylabel(r'Wavelength (cm)', fontsize=14)
+    plt.show()
+
+
+def fig_24():
+    k = 'a5'
+    cntrs = analysis.get_contours(k)
+    tm = analysis.find_times(k)
+    settings = SETTINGS[k]
+
+    # Algorithm parameters
+    outlier_dist = 0.06 if k=='7j' else 0.04  # radius in which point density must be high
+    outlier_density = 3  # minimum number of points inside circle with radius <outlier_dist>
+    max_connection_dist = 0.05 if k=='7j' else 0.03  # maximum connection length
+    min_path_length = .3  # minimum number of points in a path, fraction of total number of points
+
+    # Find local maxima of both sides and save them separately
+    t1, t2, x1, x2, y1, y2 = [], [], [], [], [], []
+
+    fig, axes = plt.subplots(1, 4, num=k)
+    for i, c in enumerate(cntrs):
+        if i % (len(cntrs) // 10) == 0:
+            x, y = list(zip(*c))
+            x = analysis.smoothen_array(np.array(x) / SETTINGS[k]["Ccal"], n=20)
+            y = analysis.smoothen_array(np.array(y) / SETTINGS[k]["Ccal"], n=20)
+            for ax in axes[:2]:
+                ax.plot(x, y, '-k', lw=0.5)
+
+        extr = analysis.find_local_extremes(c)
+        # extr = filter_local_extremes(extr)
+        mid_x = np.mean([p[0] for p in c])
+        for p in extr:
+            if p['type'] == 'high':
+                if p["x"] < mid_x:
+                    x1.append(p["x"] / settings["Ccal"])  # horizontal position in cm
+                    y1.append(p["y"] / settings["Ccal"])  # vertical position in cm
+                    # t1.append(i * settings["dt"])  # time in s
+                    t1.append(tm[i])  # time in s
+                else:
+                    x2.append(p["x"] / settings["Ccal"])  # horizontal position in cm
+                    y2.append(p["y"] / settings["Ccal"])  # vertical position in cm
+                    # t2.append(i * settings["dt"])  # time in s
+                    t2.append(tm[i])  # time in s
+
+    speeds, path_lengths = [[], []], [[], []]
+    for n, t, x, y in [(0, t1, x1, y1), (1, t2, x2, y2)]:
+        # normalize height and time series
+        yn = np.array(y) / np.max(y)
+        tn = np.array(t) / np.max(t)
+
+        plt.figure()
+        plt.plot(tn, yn, 'o')
+
+        # remove outliers
+        keep = []
+        start_idx = 0  #np.where(tn > 0.2)[0][0]
+        for i in range(start_idx, len(y)):
+            dist = np.sqrt((yn - yn[i]) ** 2 + (tn - tn[i]) ** 2)
+            if np.sum(dist < outlier_dist) > outlier_density:
+                keep.append(i)
+
+        # connect the dots
+        connections = []
+        yn = np.array([yn[i] for i in keep])
+        tn = np.array([tn[i] for i in keep])
+        plt.plot(tn, yn, 'o')
+
+        for j in range(yn.size):
+            dist = np.sqrt((yn - yn[j]) ** 2 + (tn - tn[j]) ** 2)
+            dist[tn <= tn[j]] = 999  # next point must be later in time
+            if np.min(dist) < max_connection_dist:
+                connections.append([keep[j], keep[np.argmin(dist)], np.min(dist)])
+
+        # connections to paths
+        paths = []
+        while len(connections) > 0:
+            c = connections[0]
+            for i in range(len(paths)):
+                if c[0] == paths[i][-1]:
+                    paths[i].append(c[1])
+                    break
+            else:
+                paths.append(c[:2])
+            connections.pop(0)
+
+        # filter paths
+        paths = [p for p in paths if len(p) > int(min_path_length * len(cntrs))]
+
+        # apply linear fit to paths
+        fits = []
+        for p in paths:
+            fit = np.polyfit([t[i] for i in p], [y[i] for i in p], deg=1)
+            fits.append(fit)
+
+        speeds[n] = [f[0] * 60 * 10 for f in fits]  # cm/s -> mm/min.
+        path_lengths[n] = [len(p) for p in paths]
+
+        reds = plt.get_cmap('Reds')
+        for p, f in zip(paths, fits):
+            px = analysis.smoothen_array([x[i] for i in p], n=5)
+            py = analysis.smoothen_array([y[i] for i in p], n=5)
+            tau = np.array([t[i] for i in p]) / 60  # / analysis.find_half_volume_time(k)
+            axes[1].plot(px, py, '-', color=reds(50 + len(p)))
+            axes[2+n].plot(tau, [y[i] for i in p], '.', color=reds(50 + len(p)))
+            axes[2+n].plot(tau, np.array([t[i] for i in p]) * f[0] + f[1], '-k')
+
+    axes[0].set_ylabel('y (cm)', fontsize=14)
+    for ax in axes[:2]:
+        ax.set_aspect('equal')
+        ax.set_xlim([-1, 7])
+        ax.set_ylim([0, 20])
+        ax.invert_yaxis()
+        ax.set_xlabel('x (cm)', fontsize=14)
+    for ax in axes[2:]:
+        ax.set_ylim([0, 20])
+        ax.invert_yaxis()
+        ax.set_xlabel(r'Time (min.)', fontsize=14)
+    for ax in axes[1:]:
+        ax.tick_params(labelleft=False)
+    for ax in axes[:-1]:
+        ax.tick_params(right=True)
+    axes[0].set_title('Contours')
+    axes[1].set_title('Tracked crests')
+    axes[2].set_title('Left side')
+    axes[3].set_title('Right side')
+    plt.show()
+
+
 def refresh_cache():
     # contours
     for k in ALL_KEYS:
@@ -1061,6 +1254,5 @@ def refresh_cache():
 
 
 if __name__ == "__main__":
-    # refresh_cache()
     show_figures()
 
