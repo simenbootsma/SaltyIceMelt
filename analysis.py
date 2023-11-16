@@ -88,17 +88,18 @@ def find_half_volume_time(k, from_cache=DEFAULT_CACHE):
     """ Computes time in seconds at which the cylinder's volume has been halved since t=0 """
     if from_cache:
         return get_from_cache("half_volume_time_" + k)
-    toff = find_time_offset(k)
-    dt = SETTINGS[k]['dt']
+    ioff = find_time_offset(k)
+    t = find_times(k)
     volumes = [compute_volume(c, ccal=SETTINGS[k]["Ccal"]) for c in get_contours(k)]
-    normV = np.array(volumes) / volumes[toff]
+    normV = np.array(volumes) / volumes[ioff]
     ih = len(normV[normV > 0.5]) - 1  # index at which volume is halved
 
-    if k == 'c2':
-        # camera died for 1316 seconds between frames 532 and 533 :'(
-        t_half = (ih - toff) * dt + (normV[ih] - 0.5) / (normV[ih] - normV[ih + 1]) * 1316
-    else:
-        t_half = (ih - toff + (normV[ih] - 0.5) / (normV[ih] - normV[ih + 1])) * dt  # time at which volume is halved
+    # if k == 'c2':
+    #     # camera died for 1316 seconds between frames 532 and 533 :'(
+    #     t_half = (ih - toff) * (t[ih+1] - t[ih]) + (normV[ih] - 0.5) / (normV[ih] - normV[ih + 1]) * 1316
+    # else:
+    #     t_half = (ih - toff + (normV[ih] - 0.5) / (normV[ih] - normV[ih + 1])) * (t[ih+1] - t[ih])  # time at which volume is halved
+    t_half = t[ih] - t[ioff]
     dump_to_cache(t_half, "half_volume_time_" + k)
     return t_half
 
@@ -180,7 +181,7 @@ def compute_Nusselt_number(k):
     T0_ice = 0  # temperature of ice core [degrees C]
     T = SETTINGS[k]["T"]  # ambient temperature [degrees C]
     S = SETTINGS[k]["SP"]  # ambient salinity [g/kg]
-    rho_ice = Seawater(0, 0).density()
+    rho_ice = 900  # approximate density of ice [kg/m3]
     sw = Seawater(T, S)
 
     toff = find_time_offset(k)
