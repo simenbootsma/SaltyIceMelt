@@ -27,7 +27,7 @@ def show_figures():
     fig_12()   # velocity profiles at lines
     fig_13()   # location of lines for profiles and points for histograms
     fig_14()   # velocity histograms at points
-    fig_15()   # scallop amplitude in Grashof plot
+    fig_15()   # roughness amplitude in Grashof plot
     fig_16()   # radius and r - <r> as function of height and time
     fig_17()   # wavelength and scallop migration as function of density ratio
 
@@ -679,8 +679,9 @@ def fig_14():
 
 
 def fig_15():
-    """ Scallop amplitude in T-S and GrT-GrS plot """
+    """ Roughness amplitude in T-S and GrT-GrS plot """
     from matplotlib.markers import MarkerStyle
+    fontsize = 14
 
     def T_for_SR(sal, r):
         # compute temperature T, given salinity S and density ratio R
@@ -709,10 +710,6 @@ def fig_15():
             ax[0].scatter(S, T, s=70, c=ampR, marker=markerR, cmap='plasma', edgecolors='k', linewidths=.5, vmin=0, vmax=1, zorder=zorder)
             ax[1].scatter(GrS(k), GrT(k), s=70, c=ampL, marker=markerL, cmap='plasma', edgecolors='k', linewidths=.5, vmin=0, vmax=1, zorder=zorder)
             ax[1].scatter(GrS(k), GrT(k), s=70, c=ampR, marker=markerR, cmap='plasma', edgecolors='k', linewidths=.5, vmin=0, vmax=1, zorder=zorder)
-
-            # if k == '4e':
-            #     ax[0].plot(S, T, 'o', markersize=20, color=(.8, 0, 0), mfc='none')
-            #     ax[1].plot(GrS(k), GrT(k), 'o', markersize=20, color=(.8, 0, 0), mfc='none')
 
     # add R = 1
     ax[0].plot(s, [T_for_SR(sl, 1) for sl in s], '-k', lw=1.5)
@@ -744,30 +741,30 @@ def fig_15():
     ax[1].plot(gs, gt, ':k', label='Sammakia & Gebhart (1983)')
 
     ax[0].grid()
-    ax[0].set_xlabel(r"$S_\infty$ (g/kg)", fontsize=12)
-    ax[0].set_ylabel(r"$T_\infty$ ($\degree$C)", fontsize=12)
+    ax[0].set_xlabel(r"$S_\infty$ (g/kg)", fontsize=fontsize)
+    ax[0].set_ylabel(r"$T_\infty$ ($\degree$C)", fontsize=fontsize)
     ax[0].set_xlim([0, 120])
     ax[0].set_ylim([0, 60])
-    ax[0].legend(fontsize=10, loc='lower right')
-    ax[0].tick_params(labelsize=12)
-    ax[0].text(20, 43, r'$R_\rho = 1.0$', fontsize=12, rotation=60, ha='center', va='center')
-    ax[0].text(0.05, 0.95, '(a)', ha='left', va='top', transform=ax[0].transAxes, fontsize=14)
+    ax[0].legend(fontsize=12, loc='lower right')
+    ax[0].tick_params(labelsize=fontsize)
+    ax[0].text(20, 43, r'$R_\rho = 1.0$', fontsize=fontsize, rotation=60, ha='center', va='center')
+    ax[0].text(0.05, 0.95, '(a)', ha='left', va='top', transform=ax[0].transAxes, fontsize=fontsize)
 
     ax[1].grid()
-    ax[1].set_xlabel('$Gr_S$ (-)', fontsize=12)
-    ax[1].set_ylabel('$Gr_T$ (-)', fontsize=12)
+    ax[1].set_xlabel('$Gr_S$ (-)', fontsize=fontsize)
+    ax[1].set_ylabel('$Gr_T$ (-)', fontsize=fontsize)
     ax[1].set_xscale('log')
     ax[1].set_yscale('log')
     ax[1].set_ylim([1e7, 3e10])
     ax[1].set_xlim([1e8, 1e11])
-    ax[1].tick_params(labelsize=12)
-    ax[1].text(7.8e8, 1.13e9, r'$R_\rho = 1.0$', fontsize=12, rotation=35, ha='center', va='center')
+    ax[1].tick_params(labelsize=fontsize)
+    ax[1].text(6.46e9, 9.54e9, r'$R_\rho = 1.0$', fontsize=fontsize, rotation=40, ha='center', va='center')
     ax[1].text(0.05, 0.95, '(b)', ha='left', va='top', transform=ax[1].transAxes, fontsize=14)
     # ax[1].text(2.28e9, 2e8, r'$R_\rho = 0.157$', fontsize=12, rotation=35, ha='center', va='center')
-    plt.subplots_adjust(left=0.048, right=0.99, top=.95, bottom=0.106)
+    plt.subplots_adjust(left=0.048, right=0.999, top=.95, bottom=0.116, wspace=0.25)
     cb = plt.colorbar(plt.cm.ScalarMappable(plt.Normalize(vmin=0, vmax=1), cmap=plt.get_cmap('plasma')), ax=ax)
-    cb.set_label('Scallop amplitude (mm)', fontsize=12)
-    cb.ax.tick_params(labelsize=12)
+    cb.set_label('Roughness amplitude (mm)', fontsize=fontsize, labelpad=20)
+    cb.ax.tick_params(labelsize=fontsize)
 
     plt.show()
 
