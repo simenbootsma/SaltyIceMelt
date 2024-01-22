@@ -3,9 +3,7 @@ import numpy as np
 import glob
 import pickle
 import time
-
-
-PIV_FOLDER = "/path/to/piv/exp_{:s}"        # folder containing DAT and TIF files for PIV
+from load_settings import PIV_FOLDER
 
 
 def main():

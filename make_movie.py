@@ -1,18 +1,17 @@
 import cv2 as cv
 
 import analysis
-from load_settings import load_settings
+from load_settings import *
 import glob
 import numpy as np
 from tif_to_mask import read_tif
 
 
 def folder_to_raw_movie(k):
-    folder = "/path/to/data/exp_{:s}/JPG"  # folder containing JPG images for boundary tracking
     settings = load_settings(k)
     save_path = "save_path.avi"
 
-    files = glob.glob(folder + r"\*.jpg")
+    files = glob.glob(DATA_FOLDER + r"\*.jpg")
 
     HOR_SLICE = slice(settings["hcrop"][0], settings["hcrop"][1])
     VERT_SLICE = slice(settings["vcrop"][0], settings["vcrop"][1])

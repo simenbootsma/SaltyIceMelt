@@ -1,5 +1,12 @@
 import pandas as pd
 
+
+PIV_FOLDER = "/path/to/piv/exp_{:s}"        # folder containing DAT and TIF files for PIV
+DATA_FOLDER = "/path/to/data/exp_{:s}/JPG"  # folder containing JPG images for boundary tracking
+CODE_FOLDER = "/path/to/this/file/"         # folder containing this repository
+DEFAULT_CACHE = True                        # whether to load values from cache by default
+
+
 n_exps = {'a': 9, 'b': 5, 'c': 5, 'd': 4, 'e': 4, 'f': 4}
 ALL_KEYS = []
 for n in 'abcdef':
@@ -12,7 +19,7 @@ def load_settings(keys):
 
     settings = {}
     for k in keys:
-        df = pd.read_excel('processing_settings.xlsx', sheet_name=k, index_col=0)
+        df = pd.read_excel(CODE_FOLDER + 'processing_settings.xlsx', sheet_name=k, index_col=0)
 
         settings[k] = {"id": k}
         for key, row in df.iterrows():

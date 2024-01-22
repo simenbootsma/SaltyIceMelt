@@ -3,10 +3,7 @@ import glob
 import cv2 as cv
 import numpy as np
 import pickle
-from load_settings import load_settings, ALL_KEYS
-
-
-DATA_FOLDER = "/path/to/data/exp_{:s}/JPG"  # folder containing JPG images for boundary tracking
+from load_settings import *
 
 
 def main():

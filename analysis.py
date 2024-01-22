@@ -1,6 +1,6 @@
 import numpy as np
 import pickle
-from load_settings import load_settings, ALL_KEYS
+from load_settings import *
 from Seawater import Seawater
 import cv2 as cv
 import glob
@@ -8,9 +8,6 @@ from PIL import Image
 from scipy.stats import linregress
 
 SETTINGS = load_settings('all')             # load processing settings and experimental details from processing_settings.xlsx
-PIV_FOLDER = "/path/to/piv/exp_{:s}"        # folder containing DAT and TIF files for PIV
-DATA_FOLDER = "/path/to/data/exp_{:s}/JPG"  # folder containing JPG images for boundary tracking
-DEFAULT_CACHE = True                        # whether to load values from cache by default
 
 
 """"
@@ -25,7 +22,7 @@ def dump_to_cache(obj, name):
 
 def get_from_cache(name):
     try:
-        with open('cache/{:s}.pkl'.format(name), 'rb') as f:
+        with open(CODE_FOLDER + 'cache/{:s}.pkl'.format(name), 'rb') as f:
             return pickle.load(f)
     except FileNotFoundError:
         print("Could not find '{:s}' in cache.".format(name))
@@ -34,7 +31,7 @@ def get_from_cache(name):
 
 def get_contours(k):
     """ Returns contours for experiment <k> """
-    with open('contours/contours_{:s}.pkl'.format(k), 'rb') as f:
+    with open(CODE_FOLDER + 'contours/contours_{:s}.pkl'.format(k), 'rb') as f:
         cntr = pickle.load(f)
     return cntr
 
