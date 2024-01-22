@@ -9,7 +9,7 @@ CONTROLS
     Esc : exit
     Back: reset
     f   : flip image
-    m   : move
+    m   : move left/right
     s   : sensitivity
     h   : height 
     w   : width
@@ -188,9 +188,8 @@ class Sphere:
 
 
 def main(args):
-    args = ['', 'cylinder']
     if len(args) < 2 or args[1] not in ['cylinder', 'sphere']:
-        raise ValueError("Enter either 'cylinder' or 'object' as argument.")
+        print("\033[95m warning: Neither 'cylinder' nor 'sphere' given as argument, defaulting to 'cylinder'. \033[0m")
     obj = {'cylinder': Cylinder, 'sphere': Sphere}[args[1]]()
 
     cv.namedWindow("window", cv.WINDOW_NORMAL)
