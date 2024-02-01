@@ -16,13 +16,14 @@ CONTROLS
     b   : blur 
     k   : curvature
     c   : contrast
+    .   : toggle dot pattern
 
     NOTE: shift + <key> will perform the inverse operation (when available)
 """
 
 
 class Cylinder:
-    def __init__(self, resolution=(1920, 1080)):
+    def __init__(self, resolution=(920, 800)):
         self.resolution = resolution
         self.sensitivity = int(resolution[1] / 500)
         self.center = resolution[1] // 2
@@ -34,6 +35,7 @@ class Cylinder:
         self.contrast = 1.0
         self.color_idx = 0
         self.color = (255, 255, 255)
+        self.random_dot = False
 
     def move_left(self):
         self.center -= self.sensitivity
@@ -87,11 +89,14 @@ class Cylinder:
         self.color_idx = 0 if self.color_idx == len(colors)-1 else self.color_idx + 1
         self.color = colors[self.color_idx]
 
+    def toggle_random_dot(self):
+        self.random_dot = not self.random_dot
+
     def handle_key(self, key):
         char = chr(key)
         func_map = {"m": self.move_left, "M": self.move_right, "w": self.increase_width, "W": self.decrease_width,
                     "h": self.increase_height, "H": self.decrease_height, "b": self.increase_blur,
-                    "B": self.decrease_blur,
+                    "B": self.decrease_blur, ".": self.toggle_random_dot,
                     "k": self.increase_curvature, "K": self.decrease_curvature, "f": self.flip,
                     "c": self.increase_contrast, "C": self.decrease_contrast, '\x08': self.__init__,
                     "s": self.increase_sensitivity, "S": self.decrease_sensivity, "o": self.change_color}
@@ -99,6 +104,9 @@ class Cylinder:
             func_map[char]()
 
     def get_img(self):
+        if self.random_dot:
+            return generate_random_dot_pattern(self.resolution).astype(np.uint8)
+
         img = np.zeros((self.resolution[1], self.resolution[0], 3))
         slice0 = slice(self.center - self.width // 2, self.center + self.width // 2)
         slice1 = slice(0, self.height - self.curvature)
@@ -124,6 +132,7 @@ class Sphere:
         self.contrast = 1.0
         self.color_idx = 0
         self.color = (255, 255, 255)
+        self.random_dot = False
 
     def move_left(self):
         self.center[1] -= self.sensitivity
@@ -168,17 +177,23 @@ class Sphere:
         self.color_idx = 0 if self.color_idx == len(colors)-1 else self.color_idx + 1
         self.color = colors[self.color_idx]
 
+    def toggle_random_dot(self):
+        self.random_dot = not self.random_dot
+
     def handle_key(self, key):
         char = chr(key)
         func_map = {"m": self.move_left, "M": self.move_right, "n": self.move_up, "N": self.move_down,
                     "r": self.increase_radius, "R": self.decrease_radius, "b": self.increase_blur,
-                    "B": self.decrease_blur,
+                    "B": self.decrease_blur, ".": self.toggle_random_dot,
                     "c": self.increase_contrast, "C": self.decrease_contrast, '\x08': self.__init__,
                     "s": self.increase_sensitivity, "S": self.decrease_sensivity, "o": self.change_color}
         if char in func_map:
             func_map[char]()
 
     def get_img(self):
+        if self.random_dot:
+            return generate_random_dot_pattern(self.resolution).astype(np.uint8)
+
         img = np.zeros((self.resolution[1], self.resolution[0], 3))
         img = cv.ellipse(img, self.center, (self.radius, self.radius), 0, 0, 360, self.color, -1)
         if self.blur > 0:
@@ -187,14 +202,32 @@ class Sphere:
         return img
 
 
+def generate_random_dot_pattern(resolution):
+    # random pixels
+    m = np.random.randint(0, 255, (resolution[1], resolution[0]))
+    img = np.stack([m, m, m], axis=2)
+
+    # random dots
+    img = 255 * np.ones((resolution[1], resolution[0], 3))
+    dot_frac = 0.3
+    min_r, max_r = 5, 10
+    while np.sum(img == 0) / np.prod(img.shape) < dot_frac:
+        r = np.random.randint(min_r, max_r)
+        c = (np.random.randint(0, img.shape[1]), np.random.randint(0, img.shape[0]))
+        cv.circle(img, c, r, (0, 0, 0), -1)
+
+    return img
+
+
 def main(args):
     if len(args) < 2 or args[1] not in ['cylinder', 'sphere']:
         print("\033[95m warning: Neither 'cylinder' nor 'sphere' given as argument, defaulting to 'cylinder'. \033[0m")
+        args = ['', 'cylinder']
     obj = {'cylinder': Cylinder, 'sphere': Sphere}[args[1]]()
 
     cv.namedWindow("window", cv.WINDOW_NORMAL)
-    cv.moveWindow("window", 900, -900)
-    cv.setWindowProperty("window", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
+    # cv.moveWindow("window", 900, 900)
+    # cv.setWindowProperty("window", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
     while True:
         cv.imshow("window", obj.get_img())
         key = cv.waitKey()
