@@ -8,6 +8,15 @@ class Seawater:
         self.s = salinity
 
     def density(self, t=None, s=None):
+        return self.density_millero(t, s)
+
+    def density_derivative_t(self, t=None, s=None):
+        return self.density_derivative_t_millero(t, s)
+
+    def density_derivative_s(self, t=None, s=None):
+        return self.density_derivative_s_millero(t, s)
+
+    def density_sharqawy(self, t=None, s=None):
         if t is None:
             t = self.t
         if s is None:
@@ -50,7 +59,7 @@ class Seawater:
         rho_sw = rho_0 + A * sp + B * sp ** (3 / 2) + C * sp ** 2
         return rho_sw
 
-    def density_derivative_t(self, t=None, s=None):
+    def density_derivative_t_sharqawy(self, t=None, s=None):
         """
         Computes partial derivative of density of seawater to temperature in kg/m^3/K.
         Function taken from Eq. 6 in Sharqawy2010.
@@ -79,7 +88,7 @@ class Seawater:
                   + 2 * b[4] * t * s ** 2
         return drho_dt
 
-    def density_derivative_s(self, t=None, s=None):
+    def density_derivative_s_sharqawy(self, t=None, s=None):
         """
         Computes partial derivative of density of seawater to salinity in kg/m^3/(g/kg).
         Function taken from Eq. 6 in Sharqawy2010.
@@ -107,6 +116,50 @@ class Seawater:
         b = [8.02e2, -2.001, 1.677e-2, -3.06e-5, -1.613e-5]
         drho_ds = np.sum([b[i] * t ** i for i in range(4)], axis=0) + 2 * b[4] * t ** 2 * s
         drho_ds *= 1e-3  # back to per g/kg
+        return drho_ds
+
+    def density_derivative_t_millero(self, t=None, s=None):
+        """
+        Computes partial derivative of density of seawater to temperature in kg/m^3/K.
+        Function taken from Eq. 6 in Sharqawy2010.
+        Valid in the range 0 < t < 40 degC and 0.5 < sal < 43 g/kg.
+        Accuracy: 0.01%
+        """
+
+        if t is None:
+            t = self.t
+        if s is None:
+            s = self.s
+
+        # Function taken from Eq. 6 in Sharqawy2010, valid up to 40 degrees C and 43 g/kg
+        t68 = t / (1 - 2.5e-4)  # inverse of Eq. 4 in Sharqawy2010
+
+        drho0_dt68 = 6.793952e-2 - 2 * 9.095290e-3 * t68 + 3 * 1.001685e-4 * t68 ** 2 - 4 * 1.120083e-6 * t68 ** 3 + 5 * 6.536336e-9 * t68 ** 4
+        drho_dt = drho0_dt68 / (1 - 2.5e-4)
+        return drho_dt
+
+    def density_derivative_s_millero(self, t=None, s=None):
+        """
+        Computes partial derivative of density of seawater to salinity in kg/m^3/(g/kg).
+        Function taken from Eq. 6 in Sharqawy2010.
+        Valid in the range 0 < t < 40 degC and 0.5 < sal < 43 g/kg.
+        Accuracy: 0.01%
+        """
+
+        if t is None:
+            t = self.t
+        if s is None:
+            s = self.s
+
+        # Function taken from Eq. 6 in Sharqawy2010, valid up to 40 degrees C and 43 g/kg
+        t68 = t / (1 - 2.5e-4)  # inverse of Eq. 4 in Sharqawy2010
+        sp = s / 1.00472  # inverse of Eq. 3 in Sharqawy2010
+
+        A = 8.24493e-1 - 4.0899e-3 * t68 + 7.6438e-5 * t68 ** 2 - 8.2467e-7 * t68 ** 3 + 5.3875e-9 * t68 ** 4
+        B = -5.72466e-3 + 1.0227e-4 * t68 - 1.6546e-6 * t68 ** 2
+        C = 4.8314e-4
+        drho_dsp = A + (3 / 2) * B * sp ** (1 / 2) + 2 * C * sp
+        drho_ds = drho_dsp / 1.00472
         return drho_ds
 
     def density_ratio(self):
