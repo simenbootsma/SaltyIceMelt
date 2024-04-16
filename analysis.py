@@ -289,7 +289,7 @@ def compute_wavelengths(contour):
     return wavelengths  # in pixels
 
 
-def compute_scallop_speed(k, from_cache=DEFAULT_CACHE):
+def compute_scallop_speed(k, from_cache=DEFAULT_CACHE, normalize=False):
     """ Computes downward speed of the scallops relative to average melt rate
         NOTE: a fit between dr/dt and dr/dy might be a more reliable method to obtain the scallop speed
      """
@@ -377,6 +377,9 @@ def compute_scallop_speed(k, from_cache=DEFAULT_CACHE):
 
     mean_speed = np.average(speeds[0] + speeds[1], weights=path_lengths[0]+path_lengths[1])  # mm/min.
     std_speed = np.sqrt(np.average((np.array(speeds[0] + speeds[1]) - mean_speed)**2, weights=path_lengths[0]+path_lengths[1]))  # mm/min.
+
+    if not normalize:
+        return mean_speed, std_speed
 
     avg_r = [compute_average_radius(c) for c in get_contours(k)]
     t = find_times(k)
