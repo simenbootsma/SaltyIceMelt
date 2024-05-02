@@ -4,6 +4,7 @@ import cv2 as cv
 import numpy as np
 import pickle
 from load_settings import *
+import rawpy
 
 
 def main():
@@ -44,7 +45,12 @@ def process_experiment(folder, settings):
 
 def process(filepath, settings):
     # Load image
-    img = cv.imread(filepath)
+    if '.jpg' in filepath.lower():
+        img = cv.imread(filepath)  # .jpg
+    elif '.nef' in filepath.lower():
+        img = load_nef(filepath)  # .nef
+    else:
+        raise ValueError("Image filetype not supported ({:s}), use either .jpg or .nef".format(filepath))
 
     if img is None:
         return None
@@ -99,6 +105,12 @@ def rotate_image(img, angle):
     M = cv.getRotationMatrix2D((cols/2, rows/2), angle, 1)
     img = cv.warpAffine(img, M, (cols, rows))
     return img
+
+
+def load_nef(filepath):
+    raw = rawpy.imread(filepath)
+    rgb = raw.postprocess(rawpy.Params(use_camera_wb=True))
+    return rgb
 
 
 if __name__ == "__main__":
