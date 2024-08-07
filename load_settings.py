@@ -3,7 +3,7 @@ import pandas as pd
 
 PIV_FOLDER = "/path/to/piv/exp_{:s}"        # folder containing DAT and TIF files for PIV
 DATA_FOLDER = "/path/to/data/exp_{:s}/JPG"  # folder containing JPG images for boundary tracking
-CODE_FOLDER = "/path/to/this/file/"         # folder containing this repository
+CODE_FOLDER = "/Users/simenbootsma/PycharmProjects/SaltyWaterIceMelting/"         # folder containing this repository
 DEFAULT_CACHE = True                        # whether to load values from cache by default
 
 

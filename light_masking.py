@@ -225,9 +225,9 @@ def main(args):
         args = ['', 'cylinder']
     obj = {'cylinder': Cylinder, 'sphere': Sphere}[args[1]]()
 
-    cv.namedWindow("window", cv.WINDOW_NORMAL)
-    # cv.moveWindow("window", 900, 900)
-    # cv.setWindowProperty("window", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
+    cv.namedWindow("window", cv.WND_PROP_FULLSCREEN)
+    # cv.moveWindow("window", 2000, 100)
+    cv.setWindowProperty("window", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
     while True:
         cv.imshow("window", obj.get_img())
         key = cv.waitKey()

@@ -2,19 +2,31 @@ import cv2 as cv
 import matplotlib.pyplot as plt
 import numpy as np
 import sys
+import matplotlib
+import rawpy
+import pickle
+import scipy
+
+
+matplotlib.use('Qt5Agg')
 
 
 def calibrate_image(filepath):
-    DOT_DIST = 0.5  # distance between dots in the same row or column [cm]
-    MIN_RADIUS = 15  # pixels
+    DOT_DIST = 0.516  # distance between dots in the same row or column [cm]
+    MIN_RADIUS = 5  # pixels
     MAX_RADIUS = 30  # pixels
-    BIN_THRESH = 60  # binary threshold [0-255]
+    BIN_THRESH = 110  # binary threshold [0-255]
 
     # Load and compress image
-    img = cv.imread(filepath) * 3
-    img = rotate_image(img, angle=-1.4)
+    if '.nef' in filepath.lower():
+        img = load_nef(filepath)
+    elif '.jpg' in filepath.lower():
+        img = cv.imread(filepath)
+    else:
+        raise ValueError("invalid filetype: "+filepath)
+    img = rotate_image(img, angle=0.0)
     gray = cv.cvtColor(img, cv.COLOR_RGBA2GRAY)
-    fac = 3
+    fac = 1
     coarse = cv.resize(img, (img.shape[1]//fac, img.shape[0]//fac))
     # Choose bounding box to analyze
     fig, ax = plt.subplots()
@@ -98,7 +110,125 @@ def calibrate_image(filepath):
     ax.set_title("{:.1f} +/- {:.1f} pixels per cm".format(pixels_per_cm, std_dev))
 
     plt.figure()
-    plt.hist(values)
+    plt.hist(values, bins=10)
+    plt.show()
+
+
+def local_calibration_constant(filepath):
+    DOT_DIST = 0.5  # distance between dots in the same row or column [cm]
+    # MIN_RADIUS = 15  # pixels
+    # MAX_RADIUS = 30  # pixels
+    # BIN_THRESH = 110  # binary threshold [0-255]
+    #
+    # # Load and compress image
+    # if '.nef' in filepath.lower():
+    #     img = load_nef(filepath)
+    # elif '.jpg' in filepath.lower():
+    #     img = cv.imread(filepath)
+    # else:
+    #     raise ValueError("invalid filetype: "+filepath)
+    # img = rotate_image(img, angle=0.0)
+    # gray = cv.cvtColor(img, cv.COLOR_RGBA2GRAY)
+    # fac = 3
+    # coarse = cv.resize(img, (img.shape[1]//fac, img.shape[0]//fac))
+    # # Choose bounding box to analyze
+    # fig, ax = plt.subplots()
+    # ax.imshow(coarse)
+    # ax.set_title('use RIGHT button to select top left and bottom right corners of the bounding box')
+    # # points = plt.ginput(n=4, timeout=-1, mouse_add=plt.MouseButton.RIGHT, mouse_pop=None)
+    # # x, y = sorted([points[i][0] for i in range(4)]), sorted([points[i][1] for i in range(4)])
+    # points = plt.ginput(n=2, timeout=-1, mouse_add=plt.MouseButton.RIGHT, mouse_pop=None)
+    # x, y = sorted([points[i][0] for i in range(2)]), sorted([points[i][1] for i in range(2)])
+    # x_slice = slice(int(fac * x[0]), int(fac * x[1]))
+    # y_slice = slice(int(fac * y[0]), int(fac * y[1]))
+    # ax.add_artist(plt.Rectangle((x[0], y[0]), width=x[1]-x[0], height=y[1]-y[0], facecolor='none', edgecolor='b'))
+    # ax.set_title('Close window to continue')
+    # plt.show()
+    #
+    # # Cut out bounding box
+    # crop = gray[y_slice, x_slice]
+    #
+    # # Binarize
+    # ret, glob_bin = cv.threshold(crop, BIN_THRESH, 255, cv.THRESH_BINARY)
+    #
+    # # Close gaps in binary image
+    # kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, ksize=(7, 7))
+    # closed = cv.morphologyEx(glob_bin, cv.MORPH_CLOSE, kernel, iterations=1)
+    #
+    # plt.figure()
+    # plt.imshow(closed)
+    # plt.show()
+    #
+    # # Find the circles
+    # circles = find_circleCenters(closed)
+    # circles = list(filter(lambda c: MIN_RADIUS < c["r"] < MAX_RADIUS, circles))
+    #
+    # with open('temp.pkl', 'wb') as f:
+    #     pickle.dump([fac*x[0], fac*y[0], circles], f)
+
+    with open('temp.pkl', 'rb') as f:
+        x0, y0, circles = pickle.load(f)
+
+    # plt.figure()
+    # plt.hist([c["r"] for c in circles])
+    # plt.show()
+
+    # Find the grid
+    avg_r = np.mean([c["r"] for c in circles])
+    cx = [c["x"] for c in circles]
+    cxi = np.argsort(cx)
+    cx = np.sort(cx)
+    cy = [c["y"] for c in circles]
+    cyi = np.argsort(cy)
+    cy = np.sort(cy)
+    row, col = 0, 0
+    vert_div, horz_div = [], []
+    for i in range(len(circles)):
+        if i > 0 and cx[i] > cx[i-1] + avg_r:
+            row += 1
+            vert_div.append((cx[i]+cx[i-1])/2)
+        if i > 0 and cy[i] > cy[i-1] + avg_r:
+            col += 1
+            horz_div.append((cy[i] + cy[i - 1]) / 2)
+        circles[cxi[i]]["row"] = row
+        circles[cyi[i]]["col"] = col
+
+    # Compute map of calibration constants
+    # M = np.array([[[np.nan, np.nan] for _ in range(col+1)] for _ in range(row+1)])
+    M = np.zeros((row+1, col+1, 2)) * np.nan
+    for c in circles:
+        M[c['row'], c['col']] = [c['x'], c['y']]
+
+    C = np.zeros((row+1, col+1))
+    circs2 = []
+    order = 2  # distance from center point in number of dots
+    for i in range(order, C.shape[0]-order):
+        for j in range(order, C.shape[1]-order):
+            if len(M[i, j]) > 0:
+                nb_idx = [[ii, jj] for ii in range(i-order, i+order+1) for jj in range(j-order, j+order+1) if not (ii==i and jj==j)]
+                nb_idx = [nb for nb in nb_idx if len(M[nb[0]][nb[1]]) > 0]
+                cal_c = [np.sqrt((M[i, j][0] - M[ii, jj, 0])**2 + (M[i, j, 1] - M[ii, jj, 1])**2) / (np.sqrt((i-ii)**2+(j-jj)**2) * DOT_DIST) for ii, jj in nb_idx]
+                C[i, j] = np.mean(cal_c)
+                circs2.append([M[i, j, 0], M[i, j, 1], C[i, j]])
+
+    C[C == 0] = np.nan
+    plt.imshow(C)
+    plt.gca().set_facecolor((.8, .8, .8))
+    cb = plt.colorbar()
+    cb.ax.set_title("px/cm")
+
+    X = M[:, :, 0]
+    Y = M[:, :, 1]
+    Cinterp = scipy.interpolate.interp2d(X, Y, C)
+
+
+    # Show on top of cylinder
+    img = load_nef("/Users/simenbootsma/Downloads/DSC_3390.nef")
+    plt.figure()
+    plt.imshow(img)
+    circs2 = np.array(circs2)
+    plt.scatter(circs2[:, 0] + x0, circs2[:, 1] + y0, 25, circs2[:, 2], alpha=0.5, edgecolors='none')
+
     plt.show()
 
 
@@ -106,8 +236,7 @@ def find_circleCenters(bin_img, min_area=100):
     blobs = []
     mask = np.zeros(bin_img.shape)
     for i in range(bin_img.shape[0]):
-        if i % (bin_img.shape[0] // 10) == 0:
-            print("\rFinding circles at {:.0f}%".format(100*i/bin_img.shape[0]), end='')
+        print("\rFinding circles: {:.0f}%".format(100*i/bin_img.shape[0]), end='')
         for j in range(bin_img.shape[1]):
             if bin_img[i, j] and not mask[i, j]:
                 m = mask_image(bin_img, start_pos=(i, j))
@@ -159,6 +288,14 @@ def rotate_image(img, angle):
     return img
 
 
+def load_nef(filepath):
+    raw = rawpy.imread(filepath)
+    rgb = raw.postprocess(rawpy.Params(use_camera_wb=True))
+    return rgb
+
+
 if __name__ == "__main__":
-    calibrate_image(sys.argv[1])
+    calibrate_image('/Users/simenbootsma/Downloads/calib_test_phone.jpg')
+    # calibrate_image('/Users/simenbootsma/Pictures/DSC_3404.NEF')
+    # calibrate_image(sys.argv[1])
 

@@ -6,6 +6,9 @@ import cv2 as cv
 import glob
 from PIL import Image
 from scipy.stats import linregress
+import scipy.signal as sgn
+import matplotlib.pyplot as plt
+import warnings
 
 SETTINGS = load_settings('all')             # load processing settings and experimental details from processing_settings.xlsx
 
@@ -101,7 +104,22 @@ def find_half_volume_time(k, from_cache=DEFAULT_CACHE):
     return t_half
 
 
+def find_index_for_tau(k, tau, from_cache=DEFAULT_CACHE):
+    """ Computes contour index closest to dimensionless time tau """
+    ioff = find_time_offset(k, from_cache=from_cache)
+    t = find_times(k, from_cache=from_cache)
+    thalf = find_half_volume_time(k, from_cache=from_cache)
+    t_tau = t[ioff] + tau * thalf
+    if t[0] <= t_tau <= t[-1]:
+        return np.argmin(np.abs(t - t_tau))
+    else:
+        print("\033[93m tau = {:.2f} is out of range for experiment {:s}, taking tau = {:.2f} instead\033[0m".format(tau, k, (t[-1] - t[ioff]) / thalf))
+        # warnings.warn("tau = {:.2f} is out of range for experiment {:s}, taking tau = {:.2f} instead".format(tau, k, (t[-1] - t[ioff])/thalf))
+        return len(t) - 1
+
+
 def find_times(k, from_cache=DEFAULT_CACHE):
+    """ Time in seconds for each contour, since start of experiment """
     if from_cache:
         return get_from_cache('time_' + k)
 
@@ -152,7 +170,8 @@ def compute_surface_area(contour, ccal):
     X = np.array(X)
     Y = np.array(Y)
     A = 0
-    for y in np.arange(np.max(Y)-int(height*ccal), np.max(Y)):
+    start_idx = 0 if height is None else np.max(Y) - int(height*ccal)
+    for y in np.arange(start_idx, np.max(Y)):
         if np.any(Y == y):
             diam = np.max(X[Y==y]) - np.min(X[Y==y])
             A += np.pi * diam
@@ -241,10 +260,10 @@ def compute_GrashofS_number(k):
 """
 
 
-def find_local_extremes(contour):
+def find_local_extremes(contour, n_bin=31, n_mov_avg=5):
     X, Y = list(zip(*contour))
-    c = bin_contour(contour, n=31)
-    c = smoothen_contour(c, n=5)
+    c = bin_contour(contour, n=n_bin)
+    c = smoothen_contour(c, n=n_mov_avg)
 
     # replace two points with equal x-positions with one average point
     remove = []
@@ -257,15 +276,29 @@ def find_local_extremes(contour):
     Xc, Yc = list(zip(*c))
     Xac = np.abs(np.array(Xc) - np.mean(X))     # distance from vertical symmetry axis
 
+    # Cut off the tip: Find largest range around minimum, such that all values in this range are smaller than any value outside the range
+    Imin = np.argmin(Xac)
+    il, ir = 0, 0
+    while ((np.min(Xac[:(Imin-il-1)]) > np.max(Xac[(Imin-il-1):(Imin+ir+2)]))
+           and np.min(Xac[(Imin-ir+2):]) > np.max(Xac[(Imin-il-1):(Imin+ir+2)])):
+        il += 1
+    while ((np.min(Xac[:(Imin-il-1)]) > np.max(Xac[(Imin-il-1):(Imin+ir+2)]))
+           and np.min(Xac[(Imin-ir+2):]) > np.max(Xac[(Imin-il-1):(Imin+ir+2)])):
+        ir += 1
+
     # find local minima/maxima
-    extremes = []
-    for i in range(1, len(Xac)-1):
-        j = int(i * len(X)/len(Xac))  # index in original contour, before binning/smoothing
-        if Xac[i-1] < Xac[i] > Xac[i+1]:  # crest
-            extremes.append({"type": "high", "x": X[j], "y": Y[j], "idx": j})
-        elif Xac[i-1] > Xac[i] < Xac[i+1] and Xac[i] > np.mean(Xac)/2:  # trough
-            extremes.append({"type": "low", "x": X[j], "y": Y[j], "idx": j})
-    return extremes
+    peaks = sgn.find_peaks(Xac)
+
+    idx = np.arange(len(Xac))
+    plt.plot(Xac)
+    plt.plot(idx[:(Imin-il)], Xac[:(Imin-il)])
+    plt.plot(idx[(Imin + ir + 1):], Xac[(Imin + ir + 1):])
+    plt.plot(peaks[0], Xac[peaks[0]], 'o')
+
+    plt.figure()
+    plt.plot(sgn.peak_prominences(Xac, peaks[0]))
+    plt.show()
+    return peaks
 
 
 def filter_local_extremes(extremes):
@@ -284,6 +317,7 @@ def filter_local_extremes(extremes):
 
 def compute_wavelengths(contour):
     local_extremes = find_local_extremes(contour)
+
     peak_pairs = filter_local_extremes(local_extremes)
     wavelengths = [np.abs(p1["y"] - p2["y"]) for p1, p2 in peak_pairs]
     return wavelengths  # in pixels

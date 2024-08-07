@@ -6,7 +6,7 @@ from multiprocessing import Process, Queue
 import time
 from scipy.fft import fft, fftfreq
 
-SCREEN_RES = (1920, 1200)
+SCREEN_RES = (1200, 1920)
 CAM_VIEW_BOX = []
 
 
@@ -16,7 +16,10 @@ def main():
 
 def run():
     auto_calibration()
-    # TODO: check if view box is correct, otherwise do manual calibration
+    while not is_result_ok():
+        manual_calibration()
+
+    do_masking()
 
     # STEP 1: calibrate, find the part of the screen that the camera sees, iteratively
     # STEP 2: find a target for the ice (e.g. by dilation)
@@ -26,6 +29,7 @@ def run():
 
 
 def auto_calibration():
+    global CAM_VIEW_BOX
     q = Queue()
     p0 = Process(target=show_mask, args=(q,))
     p1 = Process(target=auto_calib_worker, args=(q,))
@@ -35,18 +39,14 @@ def auto_calibration():
     p0.join()
     p1.join()
 
+    CAM_VIEW_BOX = q.get()
+
     print("Calibration DONE!")
 
 
-man_img = 255 * np.ones((SCREEN_RES[0], SCREEN_RES[1], 3))
-man_points = []
-
-
 def auto_calib_worker(queue):
-    global CAM_VIEW_BOX
-
     # Grid for size calibration
-    screen = np.ones(SCREEN_RES[::-1])
+    screen = np.ones(SCREEN_RES)
     sq_sz = 50
     for i in range(0, screen.shape[0], sq_sz):
         screen[i - 3:i + 3, :] = 0
@@ -91,7 +91,9 @@ def auto_calib_worker(queue):
     top_left = locs_sorted[0][2]
     rot_img = img if opt_rot is None else cv.rotate(img, opt_rot)
     w, h = rot_img.shape[1], rot_img.shape[0]
-    CAM_VIEW_BOX = [top_left[0], top_left[1], top_left[0] + w, top_left[1] + h]
+    view_box = [list(top_left), [top_left[0], top_left[1] + h], [top_left[0] + w, top_left[1] + h], [top_left[0] + w, top_left[1]]]
+
+    queue.put(view_box)
 
 
 def show_mask(queue):
@@ -101,7 +103,12 @@ def show_mask(queue):
     img = np.ones(SCREEN_RES)
     while True:
         if not queue.empty():
-            img = queue.get()
+            pkg = queue.get()
+            if type(pkg) is np.ndarray:
+                img = pkg
+            else:
+                queue.put(pkg)
+                break
         cv.imshow("window", img)
         key = cv.waitKey(100)
         if key == 27:
@@ -109,11 +116,13 @@ def show_mask(queue):
     cv.destroyWindow("window")
 
 
+man_img = 255 * np.ones((SCREEN_RES[0], SCREEN_RES[1], 3))
+man_points = []
+
+
 def manual_calibration():
-    global man_img, man_points
-    cv.namedWindow("window", cv.WINDOW_NORMAL)
-    # cv.moveWindow("window", 900, 900)
-    # cv.setWindowProperty("window", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
+    global man_img, man_points, CAM_VIEW_BOX
+    cv_window()
 
     cv.setMouseCallback('window', draw_circle)
     while len(man_points) < 4:
@@ -121,19 +130,8 @@ def manual_calibration():
         key = cv.waitKey(10)
         if key == 27:
             break
-
-    man_img = 255 * np.ones((SCREEN_RES[0], SCREEN_RES[1], 3))
-    for p in man_points:
-        cv.circle(man_img, p, 100, (0, 0, 255), 4)
-        cv.circle(man_img, p, 10, (0, 0, 255), -1)
-    cv.polylines(man_img, [np.reshape(np.array(man_points, dtype=np.int32), (-1, 1, 2))], True, (0, 0, 0), 30)
-    cv.imshow("window", man_img)
-    while True:
-        key = cv.waitKey()
-        if key == 27:
-            break
     cv.destroyWindow("window")
-    return man_points
+    CAM_VIEW_BOX = man_points
 
 
 def draw_circle(event, x, y, flags, param):
@@ -146,6 +144,55 @@ def draw_circle(event, x, y, flags, param):
             cv.circle(man_img, p, 10, (0, 0, 255), -1)
     elif event == cv.EVENT_LBUTTONUP:
         man_points.append([x, y])
+
+
+def is_result_ok():
+    img = 255 * np.ones((SCREEN_RES[0], SCREEN_RES[1], 3))
+    print(CAM_VIEW_BOX)
+    for p in CAM_VIEW_BOX:
+        cv.circle(img, p, 100, (0, 0, 255), 4)
+        cv.circle(img, p, 10, (0, 0, 255), -1)
+    cv.polylines(img, [np.reshape(np.array(CAM_VIEW_BOX, dtype=np.int32), (-1, 1, 2))], True, (0, 0, 0), 30)
+
+    cv_window()
+    result = None
+    print("happy? (y/n)")
+    while True:
+        cv.imshow("window", img)
+        key = cv.waitKey()
+        if chr(key).lower() == 'y':
+            result = True
+            break
+        elif chr(key).lower() == 'n':
+            result = False
+            break
+        elif key == 27:
+            break
+    cv.destroyWindow("window")
+    return result
+
+
+def do_masking():
+    cv_window()
+    img = np.zeros(SCREEN_RES)
+    center = np.mean(CAM_VIEW_BOX, axis=0)
+    x, y = list(zip(*CAM_VIEW_BOX))
+    w, h = abs(np.mean(np.sort(x)[:2]) - np.mean(np.sort(x)[2:])), abs(np.mean(np.sort(y)[:2]) - np.mean(np.sort(y)[2:]))
+
+    cv.circle(img, center.astype(np.int32), int(min(w, h)/2), (1, 1, 1), -1)
+    while True:
+        cv.imshow("window", img)
+        key = cv.waitKey(10)
+        if key == 27:
+            break
+    cv.destroyWindow("window")
+
+
+
+def cv_window():
+    cv.namedWindow("window", cv.WINDOW_NORMAL)
+    # cv.moveWindow("window", 900, 900)
+    # cv.setWindowProperty("window", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
 
 
 """ 

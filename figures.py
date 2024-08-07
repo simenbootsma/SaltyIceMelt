@@ -16,19 +16,19 @@ SETTINGS = load_settings('all')
 
 def show_figures():
     # refresh_cache()
-    tab_3()    # experiment details
+    # tab_3()    # experiment details
     fig_3()    # density in T-S diagram
-    fig_5()    # boundary tracking processing
-    fig_7()    # contours
-    fig_8()    # volume over time
-    fig_9()    # Nusselt - Rayleigh
-    fig_10()   # both mean and RMS fields
-    fig_11()   # velocity time series at points
-    fig_12()   # velocity profiles at lines
-    fig_13()   # location of lines for profiles and points for histograms
-    fig_14()   # velocity histograms at points
-    fig_15()   # roughness amplitude in Grashof plot
-    fig_16()   # radius and r - <r> as function of height and time
+    # fig_5()    # boundary tracking processing
+    # fig_7()    # contours
+    # fig_8()    # volume over time
+    # fig_9()    # Nusselt - Rayleigh
+    # fig_10()   # both mean and RMS fields
+    # fig_11()   # velocity time series at points
+    # fig_12()   # velocity profiles at lines
+    # fig_13()   # location of lines for profiles and points for histograms
+    # fig_14()   # velocity histograms at points
+    # fig_15()   # roughness amplitude in Grashof plot
+    # fig_16()   # radius and r - <r> as function of height and time
     fig_17()   # wavelength and scallop migration as function of density ratio
 
     # Appendix

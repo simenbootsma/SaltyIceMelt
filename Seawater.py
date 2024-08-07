@@ -133,9 +133,12 @@ class Seawater:
 
         # Function taken from Eq. 6 in Sharqawy2010, valid up to 40 degrees C and 43 g/kg
         t68 = t / (1 - 2.5e-4)  # inverse of Eq. 4 in Sharqawy2010
+        sp = s / 1.00472  # inverse of Eq. 3 in Sharqawy2010
 
         drho0_dt68 = 6.793952e-2 - 2 * 9.095290e-3 * t68 + 3 * 1.001685e-4 * t68 ** 2 - 4 * 1.120083e-6 * t68 ** 3 + 5 * 6.536336e-9 * t68 ** 4
-        drho_dt = drho0_dt68 / (1 - 2.5e-4)
+        dA_dt68 = - 4.0899e-3 + 2 * 7.6438e-5 * t68 - 3 * 8.2467e-7 * t68 ** 2 + 4 * 5.3875e-9 * t68 ** 3
+        dB_dt68 = 1.0227e-4 - 2 * 1.6546e-6 * t68
+        drho_dt = (drho0_dt68 + dA_dt68 * sp + dB_dt68 * sp**(3/2)) / (1 - 2.5e-4)
         return drho_dt
 
     def density_derivative_s_millero(self, t=None, s=None):
@@ -271,4 +274,17 @@ class Seawater:
     def prandtl_number(self):
         """ Pr = nu/alpha """
         return self.dynamic_viscosity() / (self.thermal_diffusivity() * self.density())
+
+
+def example():
+    T = np.linspace(0, 20, 10)   # Temperature in degrees Celsius
+    S = np.ones(T.size) * 35    # Salinity in g/kg
+
+    sw = Seawater(T, S)
+    rho = sw.density()
+    mu = sw.dynamic_viscosity()
+
+    print("Density of water at T = {:.1f} degrees Celsius and S = {:.1f} g/kg is: {:.1f} kg/m3".format(T[0], S[0], rho[0]))
+    print("Dynamic viscosity of water at T = {:.1f} degrees Celsius and S = {:.1f} g/kg is: {:.1f} kg/m3".format(T[0], S[0],
+                                                                                                       mu[0]))
 
