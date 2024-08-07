@@ -4,17 +4,20 @@ import numpy as np
 import cv2 as cv
 from multiprocessing import Process, Queue
 import time
+from scipy.fft import fft, fftfreq
 
-
-SCREEN_RES = (1920, 1080)
+SCREEN_RES = (1920, 1200)
+CAM_VIEW_BOX = []
 
 
 def main():
-    # real_image_test()
-    calibrate()
+    run()
 
 
 def run():
+    auto_calibration()
+    # TODO: check if view box is correct, otherwise do manual calibration
+
     # STEP 1: calibrate, find the part of the screen that the camera sees, iteratively
     # STEP 2: find a target for the ice (e.g. by dilation)
     # STEP 3: display target on the screen
@@ -22,10 +25,10 @@ def run():
     pass
 
 
-def calibrate():
+def auto_calibration():
     q = Queue()
     p0 = Process(target=show_mask, args=(q,))
-    p1 = Process(target=calib_worker, args=(q,))
+    p1 = Process(target=auto_calib_worker, args=(q,))
 
     p0.start()
     p1.start()
@@ -35,7 +38,122 @@ def calibrate():
     print("Calibration DONE!")
 
 
-def calib_worker(queue):
+man_img = 255 * np.ones((SCREEN_RES[0], SCREEN_RES[1], 3))
+man_points = []
+
+
+def auto_calib_worker(queue):
+    global CAM_VIEW_BOX
+
+    # Grid for size calibration
+    screen = np.ones(SCREEN_RES[::-1])
+    sq_sz = 50
+    for i in range(0, screen.shape[0], sq_sz):
+        screen[i - 3:i + 3, :] = 0
+    for j in range(0, screen.shape[1], sq_sz):
+        screen[:, j-3:j+3] = 0
+    queue.put(screen)
+
+    time.sleep(1)
+
+    img = take_synthetic_image(screen)
+
+    ret, otsu = cv.threshold(img.astype(np.uint8), 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
+    otsu = cv.blur(otsu, (13, 13))
+
+    ffts = [np.abs(fft(np.sum(otsu, axis=i)))[1:otsu.shape[1-i]//2] for i in [0, 1]]
+    fftfreqs = [fftfreq(otsu.shape[1-i], 1)[1:otsu.shape[1-i]//2] for i in [0, 1]]
+    zoom = [1/f[np.argmax(y)]/sq_sz for y, f in zip(ffts, fftfreqs)]
+    print(zoom)
+
+    # Image for camera view localization
+    screen = cv.imread('polar_bear_mosaic.jpg', cv.IMREAD_UNCHANGED)
+    # screen = cv.cvtColor(screen, cv.COLOR_BGR2GRAY)
+    screen = cv.rotate(screen[50:-50, 50:612], cv.ROTATE_90_COUNTERCLOCKWISE)
+
+    queue.put(screen)
+
+    time.sleep(1)
+
+    img = take_synthetic_image(screen)
+    img = cv.resize(img, (int(img.shape[1]/zoom[0]), int(img.shape[0]/zoom[1])))  # use zoom to rescale
+    # img = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+    # screen = cv.cvtColor(screen, cv.COLOR_BGR2GRAY)
+
+    locs = []
+    rotation_codes = [None, cv.ROTATE_90_CLOCKWISE, cv.ROTATE_180, cv.ROTATE_90_COUNTERCLOCKWISE]
+    for rot in rotation_codes:
+        rot_img = img if rot is None else cv.rotate(img, rot)
+        conv = cv.matchTemplate(screen, rot_img, cv.TM_SQDIFF)
+        locs.append(cv.minMaxLoc(conv))  # min_val, max_val, min_loc, max_loc
+    locs_sorted = sorted(locs, key=lambda tup: tup[0])
+    opt_rot = rotation_codes[locs.index(locs_sorted[0])]
+    top_left = locs_sorted[0][2]
+    rot_img = img if opt_rot is None else cv.rotate(img, opt_rot)
+    w, h = rot_img.shape[1], rot_img.shape[0]
+    CAM_VIEW_BOX = [top_left[0], top_left[1], top_left[0] + w, top_left[1] + h]
+
+
+def show_mask(queue):
+    cv.namedWindow("window", cv.WINDOW_NORMAL)
+    # cv.moveWindow("window", 900, 900)
+    # cv.setWindowProperty("window", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
+    img = np.ones(SCREEN_RES)
+    while True:
+        if not queue.empty():
+            img = queue.get()
+        cv.imshow("window", img)
+        key = cv.waitKey(100)
+        if key == 27:
+            break
+    cv.destroyWindow("window")
+
+
+def manual_calibration():
+    global man_img, man_points
+    cv.namedWindow("window", cv.WINDOW_NORMAL)
+    # cv.moveWindow("window", 900, 900)
+    # cv.setWindowProperty("window", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
+
+    cv.setMouseCallback('window', draw_circle)
+    while len(man_points) < 4:
+        cv.imshow("window", man_img)
+        key = cv.waitKey(10)
+        if key == 27:
+            break
+
+    man_img = 255 * np.ones((SCREEN_RES[0], SCREEN_RES[1], 3))
+    for p in man_points:
+        cv.circle(man_img, p, 100, (0, 0, 255), 4)
+        cv.circle(man_img, p, 10, (0, 0, 255), -1)
+    cv.polylines(man_img, [np.reshape(np.array(man_points, dtype=np.int32), (-1, 1, 2))], True, (0, 0, 0), 30)
+    cv.imshow("window", man_img)
+    while True:
+        key = cv.waitKey()
+        if key == 27:
+            break
+    cv.destroyWindow("window")
+    return man_points
+
+
+def draw_circle(event, x, y, flags, param):
+    global man_img, man_points
+    if event == cv.EVENT_MOUSEMOVE:
+        man_img = 255 * np.ones((SCREEN_RES[0], SCREEN_RES[1], 3))
+        cv.circle(man_img, (x, y), 100, (255, 0, 0), -1)
+        for p in man_points:
+            cv.circle(man_img, p, 100, (0, 0, 255), 4)
+            cv.circle(man_img, p, 10, (0, 0, 255), -1)
+    elif event == cv.EVENT_LBUTTONUP:
+        man_points.append([x, y])
+
+
+""" 
+    NOT USED 
+"""
+
+
+def calib_worker_old(queue):
     """ Use binary search to find camera view boundaries """
     screen = np.ones(SCREEN_RES)
     queue.put(screen)
@@ -89,9 +207,13 @@ def calib_worker(queue):
 
 
 def take_synthetic_image(screen):
-    crop = screen[1000:1700, 200:700]
-    img = cv.resize(crop, dsize=(crop.shape[0]*5, crop.shape[1]*5))
-    img = cv.blur(img, (51, 51)).T
+    sz = (200, 500)
+    r = (np.random.randint(screen.shape[0]-sz[0]),  np.random.randint(screen.shape[1] - sz[1]))
+    crop = screen[r[0]:(r[0]+sz[0]), r[1]:(r[1]+sz[1])]
+    img = cv.resize(crop, dsize=(crop.shape[1]*6, crop.shape[0]*6))
+    img = cv.blur(img, (31, 31))
+    rot = [None, cv.ROTATE_90_CLOCKWISE, cv.ROTATE_180, cv.ROTATE_90_COUNTERCLOCKWISE][np.random.randint(4)]
+    img = img if img is None else cv.rotate(img, rot)
     return img
 
 
@@ -179,20 +301,6 @@ def synthetic_ellipse():
                 img[i, j] = 1
     return img
 
-
-def show_mask(queue):
-    cv.namedWindow("window", cv.WINDOW_NORMAL)
-    # cv.moveWindow("window", 900, 900)
-    # cv.setWindowProperty("window", cv.WND_PROP_FULLSCREEN, cv.WINDOW_FULLSCREEN)
-    img = np.ones((700, 1000))
-    while True:
-        if not queue.empty():
-            img = queue.get()
-        cv.imshow("window", img)
-        key = cv.waitKey(100)
-        if key == 27:
-            break
-    cv.destroyWindow("window")
 
 
 if __name__ == '__main__':
